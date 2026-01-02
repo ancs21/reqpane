@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="public/icons/icon128.png" alt="Reqpane icon" width="128" height="128">
+</p>
+
 # Reqpane
 
 Chrome extension for capturing API calls, detecting errors, and debugging network requests directly from the browser side panel.
+
+<p align="center">
+  <img src="public/screenshot.png" alt="Reqpane screenshot" width="400">
+</p>
 
 ## Features
 
