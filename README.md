@@ -17,6 +17,7 @@ Chrome extension for capturing API calls, detecting errors, and debugging networ
 - Captures request/response headers and bodies
 - Tracks request duration and status codes
 - Console error capture (errors, unhandled rejections, console.error)
+- Auto-select mode to automatically focus on new requests
 
 ### Filtering & Search
 - Filter by: All, Errors (4xx/5xx), Slow (>1s), Console errors
@@ -42,10 +43,27 @@ Chrome extension for capturing API calls, detecting errors, and debugging networ
 - Continue or cancel requests from an overlay
 - Pattern-based URL matching
 
+### Load Testing
+- Replay any captured request multiple times (1-100 iterations)
+- Configurable concurrency (1-10 parallel requests)
+- Adjustable delay between batches and timeout settings
+- Real-time progress with success/failure tracking
+- Detailed statistics: avg/min/max/median/p95/p99 response times
+- Latency distribution histogram
+- Requests per second throughput metrics
+- Error grouping and analysis
+- Save and view test history
+
+### Field Usage Detection
+- Scan page DOM to find where API response values are used
+- Highlight elements using specific field values
+- Helps understand data flow from API to UI
+
 ### Export Options
 - **HAR** - Standard HTTP Archive format
 - **Postman** - Import directly into Postman collections
 - **Claude prompt** - Formatted for AI debugging assistance
+- **Markdown Report** - Comprehensive debugging report
 - **Sessions** - Save and restore request history
 
 ### Settings
