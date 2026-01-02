@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  /* Warm Minimal Palette - Light Mode */
+  --color-bg: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-text: #1C1C1C;
+  --color-text-muted: #71717A;
+
+  /* Bold Accent - Teal */
+  --color-accent: #0D9488;
+  --color-accent-light: #F0FDFA;
+
+  /* Neutral */
+  --color-border: #E4E4E7;
+  --color-hover: #F4F4F5;
+
+  /* Typography */
+  --font-main: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  /* Font size scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+}
+
+html {
+  font-size: 14px;
+}
+
+/* Font size variations */
+html[data-font-size="small"] { font-size: 12px; }
+html[data-font-size="medium"] { font-size: 14px; }
+html[data-font-size="large"] { font-size: 16px; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark Mode */
+html.dark {
+  --color-bg: #18181B;
+  --color-surface: #27272A;
+  --color-text: #FAFAFA;
+  --color-text-muted: #A1A1AA;
+  --color-accent: #14B8A6;
+  --color-accent-light: #134E4A;
+  --color-border: #3F3F46;
+  --color-hover: #3F3F46;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Geometric decoration */
+.geo-circle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }

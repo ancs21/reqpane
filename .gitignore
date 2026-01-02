@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Zip files
+*.zip
+
+# Vite
+.vite/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Store assets (generated)
+store-assets/
+api-debugger.zip
+
+# Screenshots
+public/screenshot.png
+public/image*.png
