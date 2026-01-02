@@ -103,3 +103,7 @@ bun run zip      # Build + create zip for Chrome Web Store
 - Base UI components
 - Vite
 - Chrome Manifest V3
+
+## License
+
+MIT
