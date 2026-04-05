@@ -43,9 +43,12 @@ export function LoadTestPanel({ request }: LoadTestPanelProps) {
   const [showHistory, setShowHistory] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Load history on mount
+  // Load history on mount, abort load test on unmount
   useEffect(() => {
     getLoadTestHistory().then(setHistory)
+    return () => {
+      abortControllerRef.current?.abort()
+    }
   }, [])
 
   const handleRun = useCallback(async () => {

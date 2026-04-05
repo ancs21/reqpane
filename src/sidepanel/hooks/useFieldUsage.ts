@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { UsageResult } from '../types'
 
 export function useFieldUsage(data: unknown) {
   const [usageCache, setUsageCache] = useState<Map<string, UsageResult>>(new Map())
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete'>('idle')
   const [progress, setProgress] = useState({ scanned: 0, total: 0 })
+  const cancelledRef = useRef(false)
 
   // Extract all leaf values from JSON
   const extractLeafValues = useCallback((obj: unknown, path: string = 'root'): Array<{ path: string; value: unknown }> => {
@@ -37,6 +38,7 @@ export function useFieldUsage(data: unknown) {
   const scanAllFields = useCallback(async () => {
     if (!data) return
 
+    cancelledRef.current = false
     setScanStatus('scanning')
     setUsageCache(new Map())
 
@@ -62,6 +64,8 @@ export function useFieldUsage(data: unknown) {
 
     // Process in batches
     for (let i = 0; i < leafValues.length; i += BATCH_SIZE) {
+      if (cancelledRef.current) return
+
       const batch = leafValues.slice(i, i + BATCH_SIZE)
 
       try {
@@ -125,8 +129,9 @@ export function useFieldUsage(data: unknown) {
     }
   }, [])
 
-  // Clear cache when data changes
+  // Clear cache and cancel ongoing scan when data changes
   useEffect(() => {
+    cancelledRef.current = true
     setUsageCache(new Map())
     setScanStatus('idle')
     setProgress({ scanned: 0, total: 0 })

@@ -1,5 +1,11 @@
 // Content script - bridges injected script to extension
 
+// Prevent double injection on extension reload
+if (window.__reqpaneContentLoaded) {
+  // Already loaded, skip re-injection
+} else {
+window.__reqpaneContentLoaded = true;
+
 // Inject the interceptor script into page context
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('injected.js');
@@ -245,7 +251,6 @@ class DOMFieldSearcher {
     let node;
     while ((node = walker.nextNode())) {
       this.textNodesCache.push({
-        node,
         text: node.textContent,
         element: node.parentElement
       });
@@ -265,18 +270,17 @@ class DOMFieldSearcher {
 
     const textNodes = this.buildTextNodesCache();
     const results = [];
-    const seenElements = new Set();
+    const seenElements = new WeakSet();
 
     for (const { text, element } of textNodes) {
       if (results.length >= maxResults) break;
 
-      const elementId = element.outerHTML.slice(0, 200);
-      if (seenElements.has(elementId)) continue;
+      if (seenElements.has(element)) continue;
 
       if (!this.isVisible(element)) continue;
 
       if (this.textMatches(text, searchStr)) {
-        seenElements.add(elementId);
+        seenElements.add(element);
         results.push({
           selector: this.generateSelector(element),
           textPreview: text.slice(0, 100),
@@ -535,3 +539,5 @@ const startObserving = () => {
   }
 };
 startObserving();
+
+} // end re-injection guard

@@ -44,7 +44,7 @@ export function RequestDetail({
     return () => {
       fieldUsage.clearHighlights()
     }
-  }, [request.id])
+  }, [request.id, fieldUsage.clearHighlights])
 
   const handleReplay = async () => {
     setReplaying(true)
