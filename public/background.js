@@ -475,9 +475,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
           type: 'fetch',
           method: reqMethod,
           url,
-          requestHeaders: Object.fromEntries(
-            (params.request.headers || []).map(h => [h.name, h.value])
-          ),
+          requestHeaders: params.request.headers || {},
           requestBody: params.request.postData || null,
           status: matchedMock.status || 200,
           statusText: 'OK (Mocked)',
