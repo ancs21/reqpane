@@ -1,5 +1,8 @@
 // Injected into page context to intercept fetch and XHR
 (function() {
+  // Prevent double injection on extension reload
+  if (window.__reqpaneInjected) return;
+  window.__reqpaneInjected = true;
   const sendToExtension = (data) => {
     window.postMessage({ type: 'API_DEBUGGER_REQUEST', payload: data }, '*');
   };
@@ -328,7 +331,10 @@
         return;
       }
 
+      const debuggerData = this._apiDebugger;
+
       this.addEventListener('load', () => {
+        delete this._apiDebugger;
         const duration = performance.now() - startTime;
 
         let responseBody = null;
@@ -353,7 +359,7 @@
         }
 
         sendToExtension({
-          ...this._apiDebugger,
+          ...debuggerData,
           status: this.status,
           statusText: this.statusText,
           responseHeaders,
@@ -361,13 +367,14 @@
           duration: Math.round(duration),
           error: null,
         });
-      });
+      }, { once: true });
 
       this.addEventListener('error', () => {
+        delete this._apiDebugger;
         const duration = performance.now() - startTime;
 
         sendToExtension({
-          ...this._apiDebugger,
+          ...debuggerData,
           status: 0,
           statusText: 'Network Error',
           responseHeaders: {},
@@ -375,7 +382,7 @@
           duration: Math.round(duration),
           error: 'XHR request failed',
         });
-      });
+      }, { once: true });
     }
 
     return originalXHRSend.apply(this, [body]);
@@ -428,6 +435,14 @@
     });
     return originalConsoleError.apply(this, args);
   };
+
+  // Clean up pending breakpoints on navigation
+  window.addEventListener('beforeunload', () => {
+    for (const [id, pending] of pendingBreakpoints) {
+      pending.reject(new Error('Page navigated'));
+    }
+    pendingBreakpoints.clear();
+  });
 
   console.log('[API Debugger] Network interceptor loaded');
 })();

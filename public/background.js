@@ -52,7 +52,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'API_REQUEST_CAPTURED') {
+  else if (message.type === 'API_REQUEST_CAPTURED') {
     const tabId = sender.tab?.id
     if (!tabId) return
 
@@ -78,7 +78,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
   }
 
-  if (message.type === 'GET_API_REQUESTS') {
+  else if (message.type === 'GET_API_REQUESTS') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id
       const requests = tabId ? (apiRequests.get(tabId) || []) : []
@@ -87,7 +87,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'CLEAR_API_REQUESTS') {
+  else if (message.type === 'CLEAR_API_REQUESTS') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id
       if (tabId) {
@@ -98,7 +98,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'CONSOLE_ERROR_CAPTURED') {
+  else if (message.type === 'CONSOLE_ERROR_CAPTURED') {
     const tabId = sender.tab?.id
     if (!tabId) return
 
@@ -120,7 +120,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }).catch(() => {})
   }
 
-  if (message.type === 'GET_CONSOLE_ERRORS') {
+  else if (message.type === 'GET_CONSOLE_ERRORS') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id
       const errors = tabId ? (consoleErrors.get(tabId) || []) : []
@@ -129,7 +129,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'CLEAR_CONSOLE_ERRORS') {
+  else if (message.type === 'CLEAR_CONSOLE_ERRORS') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id
       if (tabId) {
@@ -140,7 +140,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'CONTENT_SCRIPT_READY') {
+  else if (message.type === 'CONTENT_SCRIPT_READY') {
     // Content script loaded, send current mock and breakpoint rules
     chrome.storage.local.get(['mockRules', 'breakpointRules'], (result) => {
       if (sender.tab?.id) {
@@ -156,14 +156,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
   }
 
-  if (message.type === 'GET_MOCK_RULES') {
+  else if (message.type === 'GET_MOCK_RULES') {
     chrome.storage.local.get(['mockRules'], (result) => {
       sendResponse({ rules: result.mockRules || [] })
     })
     return true
   }
 
-  if (message.type === 'SAVE_MOCK_RULES') {
+  else if (message.type === 'SAVE_MOCK_RULES') {
     chrome.storage.local.set({ mockRules: message.payload }, () => {
       // Notify all tabs about the update
       chrome.tabs.query({}, (tabs) => {
@@ -181,14 +181,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  if (message.type === 'GET_BREAKPOINT_RULES') {
+  else if (message.type === 'GET_BREAKPOINT_RULES') {
     chrome.storage.local.get(['breakpointRules'], (result) => {
       sendResponse({ rules: result.breakpointRules || [] })
     })
     return true
   }
 
-  if (message.type === 'SAVE_BREAKPOINT_RULES') {
+  else if (message.type === 'SAVE_BREAKPOINT_RULES') {
     chrome.storage.local.set({ breakpointRules: message.payload }, () => {
       // Notify all tabs about the update
       chrome.tabs.query({}, (tabs) => {
@@ -213,10 +213,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   consoleErrors.delete(tabId)
 })
 
-// Clear requests and errors when tab navigates to new page
+// Clear requests and errors when tab navigates to new page (only if already tracked)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'loading') {
-    apiRequests.set(tabId, [])
-    consoleErrors.set(tabId, [])
+    if (apiRequests.has(tabId)) apiRequests.set(tabId, [])
+    if (consoleErrors.has(tabId)) consoleErrors.set(tabId, [])
   }
+})
+
+// Clean up when tab is replaced (e.g., tab discard/hibernate)
+chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+  apiRequests.delete(removedTabId)
+  consoleErrors.delete(removedTabId)
 })

@@ -19,7 +19,7 @@ import {
   Terminal,
   X
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BreakpointManager,
   ConsoleErrorDetail,
@@ -60,6 +60,7 @@ export default function App() {
   );
   const [urlFilter, setUrlFilter] = useState('');
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [autoSelect, setAutoSelect] = useState(false);
   const [mockRules, setMockRules] = useState<MockRule[]>([]);
   const [showMockManager, setShowMockManager] = useState(false);
@@ -89,6 +90,11 @@ export default function App() {
   const [fontSize, setFontSize] = useState<FontSize>('medium');
 
   // Load mock and breakpoint rules on mount
+  // Clean up copy timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current);
+  }, []);
+
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_MOCK_RULES' }, (response) => {
       if (response?.rules) {
@@ -265,7 +271,7 @@ export default function App() {
     setFavorites((prev) => {
       const newFavorites = prev.includes(requestId)
         ? prev.filter((id) => id !== requestId)
-        : [...prev, requestId];
+        : [...prev, requestId].slice(-200); // Cap at 200 to prevent unbounded growth
       chrome.storage.local.set({ favorites: newFavorites });
       return newFavorites;
     });
@@ -284,8 +290,10 @@ export default function App() {
       count: requests.length,
     };
 
-    // Save session metadata
-    const newSessions = [newSession, ...sessions].slice(0, 20); // Keep last 20 sessions
+    // Save session metadata, evict oldest if over 20
+    const allSessions = [newSession, ...sessions];
+    const newSessions = allSessions.slice(0, 20);
+    const evicted = allSessions.slice(20);
     setSessions(newSessions);
 
     // Save session data
@@ -293,6 +301,11 @@ export default function App() {
       sessions: newSessions,
       [`session_${sessionId}`]: requests,
     });
+
+    // Clean up orphaned session data
+    if (evicted.length > 0) {
+      chrome.storage.local.remove(evicted.map(s => `session_${s.id}`));
+    }
     setShowExportMenu(false);
   }, [requests, sessions]);
 
@@ -383,7 +396,8 @@ export default function App() {
     const markdown = generateClaudePrompt(req);
     await navigator.clipboard.writeText(markdown);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
   }, []);
 
   const exportToHar = useCallback(() => {

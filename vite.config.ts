@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'dist',
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         sidepanel: resolve(__dirname, 'sidepanel.html'),
       },
