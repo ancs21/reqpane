@@ -80,14 +80,36 @@ export default function App() {
   >([null, null]);
   const [showDiff, setShowDiff] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'grouped'>(
-    'list'
+    'grouped'
   );
   const [bodySearch, setBodySearch] = useState('');
+
+  // Debugger state
+  const [debuggerStatus, setDebuggerStatus] = useState<'attached' | 'detached' | 'error'>('detached');
+  const [debuggerError, setDebuggerError] = useState<string | null>(null);
+  const [pausedRequest, setPausedRequest] = useState<{ requestId: string; url: string; method: string } | null>(null);
+  const portRef = useRef<chrome.runtime.Port | null>(null);
 
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>('medium');
+
+  // Connect to background via port (triggers debugger attach)
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'sidepanel' });
+    portRef.current = port;
+
+    port.onDisconnect.addListener(() => {
+      portRef.current = null;
+      setDebuggerStatus('detached');
+    });
+
+    return () => {
+      port.disconnect();
+      portRef.current = null;
+    };
+  }, []);
 
   // Load mock and breakpoint rules on mount
   // Clean up copy timer on unmount
@@ -168,11 +190,8 @@ export default function App() {
       }
     });
 
-    // Listen for new requests and errors
-    const handleMessage = (message: {
-      type: string;
-      payload: ApiRequest | ConsoleError;
-    }) => {
+    // Listen for new requests, errors, and debugger status
+    const handleMessage = (message: Record<string, unknown>) => {
       if (message.type === 'NEW_API_REQUEST') {
         setRequests((prev) =>
           [message.payload as ApiRequest, ...prev].slice(0, 100)
@@ -182,6 +201,26 @@ export default function App() {
         setConsoleErrors((prev) =>
           [message.payload as ConsoleError, ...prev].slice(0, 50)
         );
+      }
+      if (message.type === 'DEBUGGER_STATUS') {
+        const status = message.status as 'attached' | 'detached' | 'error';
+        setDebuggerStatus(status);
+        if (status === 'error') {
+          setDebuggerError(message.error as string);
+        } else {
+          setDebuggerError(null);
+        }
+      }
+      if (message.type === 'BREAKPOINT_REQUEST_PAUSED') {
+        const req = message.request as { url: string; method: string };
+        setPausedRequest({
+          requestId: message.requestId as string,
+          url: req.url,
+          method: req.method,
+        });
+      }
+      if (message.type === 'BREAKPOINT_REQUEST_EXPIRED') {
+        setPausedRequest(null);
       }
     };
 
@@ -216,6 +255,28 @@ export default function App() {
     chrome.tabs.onActivated.addListener(handleTabChange);
     return () => chrome.tabs.onActivated.removeListener(handleTabChange);
   }, []);
+
+  const reconnectDebugger = useCallback(() => {
+    if (portRef.current) {
+      portRef.current.disconnect();
+    }
+    const port = chrome.runtime.connect({ name: 'sidepanel' });
+    portRef.current = port;
+    port.onDisconnect.addListener(() => {
+      portRef.current = null;
+      setDebuggerStatus('detached');
+    });
+  }, []);
+
+  const resumePausedRequest = useCallback((action: 'continue' | 'cancel') => {
+    if (!pausedRequest) return;
+    chrome.runtime.sendMessage({
+      type: 'RESUME_PAUSED_REQUEST',
+      requestId: pausedRequest.requestId,
+      action,
+    });
+    setPausedRequest(null);
+  }, [pausedRequest]);
 
   const clearRequests = useCallback(() => {
     chrome.runtime.sendMessage({ type: 'CLEAR_API_REQUESTS' }, () => {
@@ -441,8 +502,16 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base font-semibold">Reqpane</h1>
-              <p className="text-[10px] text-[var(--color-text-muted)]">
-                {requests.length} requests
+              <p className="text-[10px] text-[var(--color-text-muted)] flex items-center gap-1">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  debuggerStatus === 'attached' ? 'bg-green-500' :
+                  debuggerStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
+                }`} />
+                {debuggerStatus === 'attached'
+                  ? `${requests.length} requests`
+                  : debuggerStatus === 'error'
+                  ? (debuggerError || 'Cannot capture')
+                  : 'Not capturing'}
               </p>
             </div>
           </div>
@@ -694,6 +763,50 @@ export default function App() {
           </div>
         )}
       </header>
+
+      {/* Debugger disconnected banner */}
+      {debuggerStatus === 'detached' && (
+        <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs">
+          <span className="text-amber-700 dark:text-amber-300">Capture stopped</span>
+          <button
+            onClick={reconnectDebugger}
+            className="px-2 py-0.5 bg-amber-600 text-white rounded text-xs hover:bg-amber-700 transition-colors"
+          >
+            Reconnect
+          </button>
+        </div>
+      )}
+
+      {/* Breakpoint paused banner */}
+      {pausedRequest && (
+        <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <Pause className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
+              <span className="text-xs font-medium text-red-700 dark:text-red-300 shrink-0">
+                {pausedRequest.method}
+              </span>
+              <span className="text-xs text-red-600 dark:text-red-400 truncate">
+                {pausedRequest.url}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              <button
+                onClick={() => resumePausedRequest('cancel')}
+                className="px-2 py-0.5 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded text-xs hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => resumePausedRequest('continue')}
+                className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Request List or Console Errors */}
       <div className="flex-1 overflow-auto">

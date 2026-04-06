@@ -207,7 +207,7 @@ export function RequestDetail({
             )}
           </Tabs.Panel>
 
-          <Tabs.Panel value="request" className="p-3">
+          <Tabs.Panel value="request" className="p-3 h-full overflow-auto">
             <pre className="text-xs font-mono whitespace-pre-wrap break-all bg-bg p-3 rounded-lg border border-border">
               {request.requestBody ? formatJson(request.requestBody) : '(empty)'}
             </pre>

@@ -71,7 +71,17 @@ Chrome extension for capturing API calls, detecting errors, and debugging networ
 - Adjustable font size (small/medium/large)
 - Favorites for frequently accessed requests
 
-## Installation
+## Quick Install (No Coding Required)
+
+1. **Download** the latest `reqpane.zip` from [Releases](../../releases/latest)
+2. **Unzip** the downloaded file to a folder
+3. **Open Chrome** and go to `chrome://extensions`
+4. **Enable** "Developer mode" (toggle in top right corner)
+5. **Click** "Load unpacked" and select the unzipped folder
+
+Done! Click the Reqpane icon in your toolbar to start debugging.
+
+## Developer Installation
 
 1. Clone this repository
 2. Install dependencies:
