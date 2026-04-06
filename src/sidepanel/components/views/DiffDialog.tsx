@@ -85,7 +85,7 @@ export function DiffDialog({
             <div className="flex-1 px-4 py-2 border-r border-border bg-surface">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono font-semibold text-emerald-600">{req1.method}</span>
-                <span className="text-[10px] text-text-muted truncate">{new URL(req1.url).pathname}</span>
+                <span className="text-[10px] text-text-muted truncate">{(() => { try { return new URL(req1.url).pathname } catch { return req1.url } })()}</span>
               </div>
               <div className="text-[10px] text-text-muted mt-0.5">
                 Status: {req1.status} • {req1.duration}ms
@@ -94,7 +94,7 @@ export function DiffDialog({
             <div className="flex-1 px-4 py-2 bg-surface">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono font-semibold text-blue-600">{req2.method}</span>
-                <span className="text-[10px] text-text-muted truncate">{new URL(req2.url).pathname}</span>
+                <span className="text-[10px] text-text-muted truncate">{(() => { try { return new URL(req2.url).pathname } catch { return req2.url } })()}</span>
               </div>
               <div className="text-[10px] text-text-muted mt-0.5">
                 Status: {req2.status} • {req2.duration}ms
